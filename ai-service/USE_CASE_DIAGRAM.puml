@@ -1,0 +1,121 @@
+@startuml AI Service Use Case Diagram
+
+!define RECTANGLE class
+
+title Use Case Diagram - AI Service (Expense Classification)
+
+left to right direction
+
+actor "Backend Service\n(Node.js)" as Backend
+actor "Data Scientist\n/ Admin" as Admin
+actor "System" as System
+
+rectangle "AI Service" {
+  
+  package "API Layer (FastAPI)" {
+    usecase "UC1: Classify Single Expense" as UC1
+    usecase "UC2: Classify Batch Expenses" as UC2
+    usecase "UC3: Health Check" as UC3
+    usecase "UC4: Load Models on Startup" as UC4
+  }
+  
+  package "Core Modules" {
+    usecase "UC5: Train Classification Model" as UC5
+    usecase "UC6: Test Model Interactively" as UC6
+    usecase "UC7: Extract Amount from Text" as UC7
+    usecase "UC8: Preprocess Text (TF-IDF)" as UC8
+    usecase "UC9: Predict Category & Jar" as UC9
+    usecase "UC10: Infer Transaction Type\n(INCOME/EXPENSE)" as UC10
+    usecase "UC11: Detect Anomalies" as UC11
+    usecase "UC12: Check Budget Limits" as UC12
+  }
+  
+  package "Data Management" {
+    usecase "UC13: Export Expenses from MongoDB" as UC13
+    usecase "UC14: Clean & Prepare Data" as UC14
+    usecase "UC15: Split Train/Test Data" as UC15
+    usecase "UC16: Save Trained Models" as UC16
+    usecase "UC17: Load Trained Models" as UC17
+  }
+}
+
+' Relationships - Backend Service
+Backend --> UC1 : HTTP POST\n/classify-expense
+Backend --> UC2 : HTTP POST\n/classify-batch
+Backend --> UC3 : HTTP GET\n/health
+
+' Relationships - Admin/Data Scientist
+Admin --> UC5 : Run train_model.py
+Admin --> UC6 : Run test_model.py\nor demo_test.py
+Admin --> UC13 : Extract data
+Admin --> UC14 : Clean data
+Admin --> UC15 : Split datasets
+Admin --> UC16 : Save models
+
+' Relationships - System
+System --> UC4 : Auto-load on\nAPI startup
+System --> UC17 : Load models\nwhen needed
+
+' Internal dependencies
+UC1 ..> UC8 : uses
+UC1 ..> UC7 : uses
+UC1 ..> UC9 : uses
+UC1 ..> UC10 : uses
+
+UC2 ..> UC8 : uses
+UC2 ..> UC7 : uses
+UC2 ..> UC9 : uses
+UC2 ..> UC10 : uses
+
+UC5 ..> UC13 : uses
+UC5 ..> UC14 : uses
+UC5 ..> UC15 : uses
+UC5 ..> UC8 : uses
+UC5 ..> UC9 : uses
+UC5 ..> UC16 : uses
+
+UC6 ..> UC17 : uses
+UC6 ..> UC8 : uses
+UC6 ..> UC7 : uses
+UC6 ..> UC9 : uses
+
+UC9 ..> UC10 : uses
+
+UC11 ..> UC13 : uses
+UC12 ..> UC13 : uses
+
+UC4 ..> UC17 : uses
+
+note right of UC1
+  Input: description, userId, amount (optional)
+  Output: predictedCategory, predictedJarKey,
+  predictedType, confidence, amount
+end note
+
+note right of UC7
+  Extracts amount from text description
+  Supports: "150000 đồng", "$150", "150k", etc.
+end note
+
+note right of UC8
+  Text preprocessing:
+  - Lowercase
+  - Remove punctuation/digits
+  - Remove stopwords (VN + EN)
+  - TF-IDF vectorization
+end note
+
+note right of UC9
+  Uses MultinomialNB classifier
+  Maps category to jar key
+  (NEC, FFA, LTSS, EDU, PLAY, GIVE)
+end note
+
+note right of UC10
+  Determines if transaction is
+  INCOME or EXPENSE based on
+  category and keywords
+end note
+
+@enduml
+
