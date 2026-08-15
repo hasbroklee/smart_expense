@@ -1,455 +1,357 @@
-# Smart Personal Expense Management System
+# Smart Expense
 
-A comprehensive full-stack expense management system with AI-powered classification, anomaly detection, and the 6 Jars financial model.
+Hệ thống quản lý chi tiêu cá nhân full-stack, kết hợp AI phân loại giao dịch, phát hiện chi tiêu bất thường và mô hình tài chính 6 hũ.
 
-## 🎯 Features
+## Tổng quan
 
-- **🤖 AI-Powered Classification**: Automatically classifies expenses using TF-IDF + Naive Bayes
-- **💰 Amount Extraction**: Extracts amounts from text descriptions (Vietnamese & English)
-- **🏦 6 Jars Financial Model**: NEC, FFA, LTSS, EDU, PLAY, GIVE
-- **🚨 Anomaly Detection**: Detects unusual expenses and budget violations
-- **🔔 Alert System**: Real-time alerts for anomalies and budget limits
-- **📊 Beautiful Dashboard**: Interactive charts and visualizations
-- **🔐 User Authentication**: Secure JWT-based authentication
-- **📱 Responsive UI**: Modern React frontend with Tailwind CSS
+Project gồm 3 phần chính:
 
-## 📁 Project Structure
+- `ai-service`: dịch vụ AI viết bằng Python/FastAPI, dùng để phân loại giao dịch từ mô tả văn bản
+- `backend`: API Node.js/Express kết nối MongoDB, xử lý xác thực, giao dịch, hũ, cảnh báo, mục tiêu và định kỳ
+- `frontend`: giao diện React/Vite hiển thị dashboard, giao dịch, 6 hũ, cảnh báo, mục tiêu và giao dịch định kỳ
 
-```
-caohocday/
-├── ai-service/              # Python AI service (FastAPI)
-│   ├── modules/             # AI modules
-│   │   ├── data_labeling.py
-│   │   ├── text_preprocessing.py
-│   │   ├── classification.py
-│   │   └── anomaly_detection.py
-│   ├── api/                 # FastAPI service
-│   │   └── main.py
-│   ├── models/              # Trained ML models (generated)
-│   ├── demo_test.py         # Demo test script
-│   ├── train_model.py       # Training script
+## Tính năng chính
+
+- Phân loại giao dịch bằng AI từ mô tả nhập tay
+- Tự trích xuất số tiền từ câu mô tả
+- Quản lý thu nhập và chi tiêu
+- Quản lý 6 hũ tài chính: `NEC`, `FFA`, `LTSS`, `EDU`, `PLAY`, `GIVE`
+- Phát hiện giao dịch bất thường và tạo cảnh báo
+- Dashboard thống kê tổng quan
+- Quản lý danh mục giao dịch
+- Quản lý mục tiêu tiết kiệm
+- Quản lý giao dịch định kỳ
+- Giao diện tiếng Việt, chạy local thuận tiện bằng file `.bat`
+
+## Cấu trúc thư mục
+
+```text
+smart_expense/
+├── ai-service/
+│   ├── api/
+│   ├── modules/
+│   ├── models/
+│   ├── run_api.py
 │   └── requirements.txt
-├── backend/                 # Node.js/Express backend
-│   ├── models/              # MongoDB models
-│   ├── routes/              # API routes
-│   ├── services/            # Business logic
-│   ├── middleware/          # Auth middleware
-│   ├── config/              # Configuration
-│   ├── server.js            # Express server
-│   └── package.json
-├── frontend/                # React frontend
+├── backend/
+│   ├── config/
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   ├── scripts/
+│   ├── services/
+│   ├── .env
+│   ├── package.json
+│   └── server.js
+├── frontend/
 │   ├── src/
-│   │   ├── components/      # React components
-│   │   ├── pages/           # Page components
-│   │   ├── contexts/       # React contexts
-│   │   └── services/       # API services
-│   └── package.json
-└── README.md                # This file
+│   ├── package.json
+│   └── vite.config.js
+├── start-ai-service.bat
+├── start-backend.bat
+├── start-frontend.bat
+├── start-all.bat
+└── README.md
 ```
 
-## 🚀 Quick Start Guide
+## Công nghệ sử dụng
 
-### Prerequisites
+### Frontend
 
-Before you begin, ensure you have the following installed:
+- React 18
+- Vite
+- React Router DOM
+- Tailwind CSS
+- Recharts
+- Axios
 
-- **Python 3.8+** - For AI service
-- **Node.js 16+** - For backend and frontend
-- **MongoDB 4.4+** - Database
-- **npm** or **yarn** - Package manager
-- **pip** - Python package manager
+### Backend
 
-### Step 1: Clone and Setup
+- Node.js
+- Express
+- MongoDB
+- Mongoose
+- JWT
 
-```bash
-# Navigate to project directory
-cd caohocday
+### AI Service
+
+- Python
+- FastAPI
+- TF-IDF + Naive Bayes
+
+## Yêu cầu môi trường
+
+- Windows để dùng trực tiếp các file `.bat`
+- Node.js runtime khả dụng trên máy
+- Python 3.x
+- MongoDB Atlas hoặc MongoDB local
+
+Lưu ý: project hiện đã được tối ưu để chạy local bằng các script `.bat` trong repo.
+
+## Cấu hình môi trường
+
+Tạo file `backend/.env` với nội dung mẫu:
+
+```env
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>/<db_name>?appName=Cluster0
+PORT=3000
+NODE_ENV=development
+AI_API_URL=http://localhost:8000
+JWT_SECRET=your-jwt-secret
 ```
 
-### Step 2: Setup AI Service (Python)
+Nếu bạn chỉ chạy local, frontend hiện gọi API qua proxy `/api`, backend mặc định ở `http://localhost:3000`, AI service ở `http://localhost:8000`.
+
+## Cách chạy project
+
+### Cách nhanh nhất
+
+Chạy file:
+
+```bat
+start-all.bat
+```
+
+Script này sẽ mở 3 cửa sổ riêng:
+
+- AI service
+- Backend
+- Frontend
+
+Sau khi khởi động xong:
+
+- Frontend: [http://127.0.0.1:5173/index.html](http://127.0.0.1:5173/index.html)
+- Backend health: [http://127.0.0.1:3000/health](http://127.0.0.1:3000/health)
+- AI docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+
+### Chạy từng phần riêng
+
+#### 1. AI service
+
+```bat
+start-ai-service.bat
+```
+
+Hoặc thủ công:
 
 ```bash
-# Navigate to AI service directory
 cd ai-service
-
-# Create virtual environment (recommended)
-python -m venv venv
-
-# Activate virtual environment
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
-
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Train demo model (creates models in models/ directory)
-python demo_test.py
-
-# Start FastAPI service
 python run_api.py
 ```
 
-The AI service will be available at: **http://localhost:8000**
+#### 2. Backend
 
-**Verify AI service is running:**
-- Visit: http://localhost:8000/docs (Swagger UI)
-- Or: http://localhost:8000/health
+```bat
+start-backend.bat
+```
 
-### Step 3: Setup Backend (Node.js)
-
-Open a **new terminal** window:
+Hoặc thủ công:
 
 ```bash
-# Navigate to backend directory
 cd backend
-
-# Install dependencies
 npm install
-
-# Create .env file
-# Copy the example below or create manually
+node server.js
 ```
 
-Create `backend/.env` file:
+#### 3. Frontend
 
-```env
-MONGODB_URI=mongodb://localhost:27017/expense_db
-PORT=3000
-NODE_ENV=development
-AI_API_URL=http://localhost:8000
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+```bat
+start-frontend.bat
 ```
 
-**Generate a secure JWT secret:**
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
+Hoặc thủ công:
 
 ```bash
-# Start MongoDB (if not running as a service)
-# On Windows: Make sure MongoDB service is running
-# On macOS: brew services start mongodb-community
-# On Linux: sudo systemctl start mongod
-
-# Start backend server
+cd frontend
+npm install
 npm run dev
 ```
 
-The backend API will be available at: **http://localhost:3000**
+## Các màn hình chính
 
-**Verify backend is running:**
-- Visit: http://localhost:3000/health
-- Should return: `{"status":"healthy","timestamp":"..."}`
+- `/` hoặc `#/`: Tổng quan
+- `#/expenses`: Giao dịch
+- `#/jars`: 6 hũ tài chính
+- `#/alerts`: Cảnh báo
+- `#/categories`: Danh mục
+- `#/goals`: Mục tiêu tiết kiệm
+- `#/recurring`: Giao dịch định kỳ
 
-### Step 4: Setup Frontend (React)
+Frontend đang dùng `HashRouter`, vì vậy khi chạy local đường dẫn sẽ theo dạng `#/route`.
 
-Open a **new terminal** window:
+## Giải thích nghiệp vụ
 
-```bash
-# Navigate to frontend directory
-cd frontend
+### 1. 6 hũ tài chính
 
-# Install dependencies
-npm install
+- `NEC`: Nhu cầu thiết yếu
+- `FFA`: Tự do tài chính
+- `LTSS`: Tiết kiệm dài hạn
+- `EDU`: Giáo dục
+- `PLAY`: Giải trí
+- `GIVE`: Cho đi
 
-# Start development server
-npm run dev
-```
+Mỗi giao dịch chi tiêu sẽ gắn vào một hũ để theo dõi hạn mức và cấu trúc tài chính cá nhân.
 
-The frontend will be available at: **http://localhost:5173**
+### 2. Mục tiêu tiết kiệm
 
-### Step 5: Access the Application
+Phần `Mục tiêu` dùng để theo dõi các đích tiết kiệm như:
 
-1. Open your browser and go to: **http://localhost:5173**
-2. Register a new account or login
-3. Start adding expenses!
+- mua laptop
+- quỹ dự phòng
+- du lịch
 
-## 🧪 Testing the System
+Mỗi mục tiêu có:
 
-### Test AI Service
+- tên mục tiêu
+- số tiền mục tiêu
+- số tiền hiện có
+- hũ liên quan
+- ngày đích nếu cần
 
-```bash
-cd ai-service
-python demo_test.py
-```
+### 3. Giao dịch định kỳ
 
-Enter test descriptions like:
-- `Mua đồ ăn 150000 đồng`
-- `Buy groceries $200`
-- `Thanh toán hóa đơn 500.000 VNĐ`
+Phần `Định kỳ` dùng để lưu các khoản lặp lại như:
 
-### Test Backend API
+- lương hàng tháng
+- tiền internet
+- tiền thuê nhà
+- học phí
 
-```bash
-# Register a user
-curl -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "testuser",
-    "email": "test@example.com",
-    "password": "password123",
-    "fullName": "Test User"
-  }'
+Mỗi bản ghi có:
 
-# Login
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "identifier": "test@example.com",
-    "password": "password123"
-  }'
+- tiêu đề
+- mô tả
+- số tiền
+- loại giao dịch
+- danh mục
+- tần suất
+- ngày chạy tiếp theo
 
-# Save the token from response, then:
-# Create an expense (replace YOUR_TOKEN)
-curl -X POST http://localhost:3000/api/expenses \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{
-    "description": "Mua đồ ăn 150000 đồng"
-  }'
-```
+## Seed dữ liệu demo
 
-### Test Frontend
+Backend có script seed dữ liệu mẫu:
 
-1. Go to http://localhost:5173
-2. Register/Login
-3. Navigate through:
-   - Dashboard
-   - Expenses (add/view/edit)
-   - 6 Jars (view/edit limits)
-   - Alerts (view notifications)
-
-## 📋 Complete Setup Checklist
-
-- [ ] Python 3.8+ installed
-- [ ] Node.js 16+ installed
-- [ ] MongoDB installed and running
-- [ ] AI service dependencies installed (`pip install -r ai-service/requirements.txt`)
-- [ ] AI models trained (`python ai-service/demo_test.py`)
-- [ ] AI service running (`python ai-service/run_api.py`)
-- [ ] Backend dependencies installed (`npm install` in `backend/`)
-- [ ] Backend `.env` file created with correct values
-- [ ] Backend server running (`npm run dev` in `backend/`)
-- [ ] Frontend dependencies installed (`npm install` in `frontend/`)
-- [ ] Frontend server running (`npm run dev` in `frontend/`)
-- [ ] All three services accessible:
-  - AI Service: http://localhost:8000
-  - Backend API: http://localhost:3000
-  - Frontend: http://localhost:5173
-
-## 🔧 Configuration
-
-### AI Service Configuration
-
-**File:** `ai-service/api/main.py`
-
-- Default port: `8000`
-- Models location: `ai-service/models/`
-- Change port in `run_api.py` if needed
-
-### Backend Configuration
-
-**File:** `backend/.env`
-
-```env
-MONGODB_URI=mongodb://localhost:27017/expense_db
-PORT=3000
-NODE_ENV=development
-AI_API_URL=http://localhost:8000
-JWT_SECRET=your-secret-key-here
-```
-
-### Frontend Configuration
-
-**File:** `frontend/vite.config.js`
-
-- API proxy configured to forward `/api` to `http://localhost:3000`
-- Default port: `5173`
-- Change if needed
-
-## 🐛 Troubleshooting
-
-### AI Service Issues
-
-**Problem:** `ModuleNotFoundError: No module named 'joblib'`
-```bash
-# Solution: Install dependencies
-cd ai-service
-pip install -r requirements.txt
-```
-
-**Problem:** `FileNotFoundError: models/tfidf_vectorizer.pkl`
-```bash
-# Solution: Train the model first
-cd ai-service
-python demo_test.py
-```
-
-**Problem:** AI service not responding
-- Check if port 8000 is available
-- Verify models exist in `ai-service/models/`
-- Check console for errors
-
-### Backend Issues
-
-**Problem:** `MongoNetworkError: connect ECONNREFUSED`
-```bash
-# Solution: Start MongoDB
-# Windows: Check MongoDB service is running
-# macOS: brew services start mongodb-community
-# Linux: sudo systemctl start mongod
-```
-
-**Problem:** `Error: AI service is not available`
-- Make sure AI service is running on port 8000
-- Check `AI_API_URL` in `.env` file
-- Test: `curl http://localhost:8000/health`
-
-**Problem:** `JWT_SECRET` error
-- Make sure `.env` file exists in `backend/` directory
-- Add `JWT_SECRET` to `.env` file
-- Restart backend server
-
-### Frontend Issues
-
-**Problem:** `Cannot GET /api/...`
-- Make sure backend is running on port 3000
-- Check browser console for CORS errors
-- Verify proxy configuration in `vite.config.js`
-
-**Problem:** `401 Unauthorized`
-- Make sure you're logged in
-- Check if token is stored in localStorage
-- Try logging out and logging back in
-
-**Problem:** Dependencies not installing
-```bash
-# Clear cache and reinstall
-rm -rf node_modules package-lock.json
-npm install
-```
-
-## 📚 API Documentation
-
-### Backend API
-
-Once backend is running, visit:
-- **Swagger UI**: Not available (use Postman/curl)
-- **Health Check**: http://localhost:3000/health
-
-### AI Service API
-
-Once AI service is running, visit:
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-- **Health Check**: http://localhost:8000/health
-
-## 🎓 Usage Examples
-
-### Adding an Expense
-
-**Via Frontend:**
-1. Go to Expenses page
-2. Click "Add Expense"
-3. Enter description: `Mua đồ ăn 150000 đồng`
-4. AI will automatically:
-   - Extract amount: 150000
-   - Classify category: Food
-   - Assign jar: NEC
-   - Detect anomalies
-
-**Via API:**
-```bash
-curl -X POST http://localhost:3000/api/expenses \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{"description": "Mua đồ ăn 150000 đồng"}'
-```
-
-### Viewing Dashboard
-
-1. Login to frontend
-2. Dashboard shows:
-   - Total spending this month
-   - Expense distribution chart
-   - Recent expenses
-   - Unread alerts count
-
-### Managing 6 Jars
-
-1. Go to "6 Jars" page
-2. View spending for each jar
-3. Click edit icon to set monthly limits
-4. Progress bars show spending vs limits
-
-## 🔐 Security Notes
-
-- **JWT_SECRET**: Change the default secret in production
-- **MongoDB**: Use authentication in production
-- **CORS**: Configure allowed origins in production
-- **Environment Variables**: Never commit `.env` files
-
-## 📦 Production Deployment
-
-### AI Service
-```bash
-cd ai-service
-# Use gunicorn or uvicorn for production
-gunicorn api.main:app -w 4 -k uvicorn.workers.UvicornWorker
-```
-
-### Backend
 ```bash
 cd backend
-# Set NODE_ENV=production
-npm start
+node scripts/seedDemo.js
 ```
 
-### Frontend
+Hoặc:
+
 ```bash
-cd frontend
-npm run build
-# Serve dist/ directory with nginx or similar
+npm run seed:demo
 ```
 
-## 🤝 Contributing
+Script hiện tạo 3 tài khoản mẫu:
 
-This project was built for a team of 3 students. To contribute:
+- `demo@expenseai.local` / `demo_user` / `123456`
+- `office.user@expenseai.local` / `office_user` / `123456`
+- `freelancer.user@expenseai.local` / `freelancer_user` / `123456`
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+Mỗi tài khoản có lịch sử giao dịch mẫu để:
 
-## 📝 License
+- hiển thị dashboard
+- có dữ liệu cảnh báo bất thường
+- hỗ trợ AI backend học thêm mẫu mô tả giao dịch
 
-ISC
+## API chính của backend
 
-## 👥 Team
+Một số nhóm API chính:
 
-Built for a team of 3 students learning ML and full-stack development.
+- `/api/auth`: đăng ký, đăng nhập, hồ sơ
+- `/api/expenses`: giao dịch
+- `/api/jars`: 6 hũ
+- `/api/alerts`: cảnh báo
+- `/api/categories`: danh mục
+- `/api/goals`: mục tiêu tiết kiệm
+- `/api/recurring`: giao dịch định kỳ
 
-## 🆘 Getting Help
+Root API:
 
-If you encounter issues:
+- [http://localhost:3000/](http://localhost:3000/)
 
-1. Check the Troubleshooting section above
-2. Verify all services are running
-3. Check console logs for errors
-4. Ensure all dependencies are installed
-5. Verify environment variables are set correctly
+Health check:
 
-## 📞 Support
+- [http://localhost:3000/health](http://localhost:3000/health)
 
-For issues or questions:
-- Check individual component READMEs:
-  - `ai-service/README.md`
-  - `backend/README.md`
-  - `frontend/README.md`
+## Luồng AI
 
----
+Khi tạo giao dịch từ mô tả văn bản:
 
-**Happy Expense Managing! 💰**
+1. Frontend gửi mô tả lên backend
+2. Backend gọi AI service tại `AI_API_URL`
+3. AI service dự đoán:
+   - loại giao dịch
+   - danh mục
+   - hũ phù hợp
+   - số tiền nếu có trong mô tả
+4. Backend lưu kết quả AI vào trường `ai`
+5. Backend tiếp tục kiểm tra bất thường và tạo cảnh báo nếu cần
+
+## Kiểm thử nhanh
+
+### Kiểm tra AI service
+
+- Mở [http://localhost:8000/docs](http://localhost:8000/docs)
+- Hoặc [http://localhost:8000/health](http://localhost:8000/health)
+
+### Kiểm tra backend
+
+- Mở [http://localhost:3000/health](http://localhost:3000/health)
+- Mở [http://localhost:3000/](http://localhost:3000/)
+
+### Kiểm tra frontend
+
+- Mở [http://127.0.0.1:5173/index.html](http://127.0.0.1:5173/index.html)
+- Đăng nhập bằng một tài khoản seed
+
+## Xử lý lỗi thường gặp
+
+### Không kết nối được MongoDB
+
+Kiểm tra lại:
+
+- `MONGODB_URI` trong `backend/.env`
+- IP/network có cho phép truy cập MongoDB Atlas hay không
+- user/password của MongoDB có đúng hay không
+
+### Backend báo không gọi được AI service
+
+Kiểm tra:
+
+- AI service đã chạy ở cổng `8000`
+- `AI_API_URL` trong `backend/.env`
+- endpoint [http://localhost:8000/health](http://localhost:8000/health)
+
+### Frontend vào route bị lỗi
+
+Project hiện dùng `HashRouter`, nên hãy truy cập theo dạng:
+
+- `http://127.0.0.1:5173/#/goals`
+- `http://127.0.0.1:5173/#/recurring`
+
+### Chạy file `.bat` nhưng không lên service
+
+Kiểm tra:
+
+- Node runtime có tồn tại đúng đường dẫn mà file `.bat` đang trỏ tới
+- Python runtime có tồn tại đúng đường dẫn mà file `.bat` đang trỏ tới
+- port `3000`, `5173`, `8000` có đang bị ứng dụng khác chiếm hay không
+
+## Gợi ý phát triển tiếp
+
+- thêm đồng bộ giao dịch định kỳ tự động bằng cron job
+- thêm export Excel/PDF
+- thêm biểu đồ theo tuần/tháng/năm
+- thêm mô hình AI mạnh hơn cho tiếng Việt
+- thêm phân quyền quản trị hoặc chia sẻ tài khoản gia đình
+
+## Ghi chú bảo mật
+
+- Không commit file `.env` thật lên git
+- Không để lộ `JWT_SECRET` production
+- Không hard-code tài khoản MongoDB production trong mã nguồn
+
+## Tác giả
+
+Project phục vụ bài toán quản lý chi tiêu cá nhân có tích hợp AI và mô hình 6 hũ, đồng thời đã được tinh chỉnh để chạy local thuận tiện trên máy Windows.
