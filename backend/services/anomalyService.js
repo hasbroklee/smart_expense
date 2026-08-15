@@ -43,7 +43,7 @@ class AnomalyService {
                     result.isAnomaly = true;
                     result.reasons.push('ANOMALY');
                     result.level = 'warning';
-                    result.message += `Expense is ${(amount / meanSpending).toFixed(2)}x higher than average spending in ${jarKey} jar. `;
+                    result.message += `Khoản chi này cao gấp ${(amount / meanSpending).toFixed(2)} lần mức chi trung bình của hũ ${jarKey}. `;
                 }
             }
 
@@ -77,11 +77,11 @@ class AnomalyService {
                         result.level = 'info';
                     }
 
-                    result.message += `Expense exceeds monthly limit for ${jarKey} jar. `;
-                    result.message += `Current: ${monthlyTotal.toLocaleString()}, `;
-                    result.message += `Limit: ${jarConfig.monthlyLimit.toLocaleString()}, `;
-                    result.message += `After expense: ${projectedTotal.toLocaleString()} `;
-                    result.message += `(${overage.toLocaleString()} over).`;
+                    result.message += `Khoản chi này vượt hạn mức tháng của hũ ${jarKey}. `;
+                    result.message += `Hiện tại: ${monthlyTotal.toLocaleString()}, `;
+                    result.message += `Hạn mức: ${jarConfig.monthlyLimit.toLocaleString()}, `;
+                    result.message += `Sau khi ghi nhận: ${projectedTotal.toLocaleString()} `;
+                    result.message += `(vượt ${overage.toLocaleString()}).`;
                 }
             }
 
@@ -124,15 +124,15 @@ class AnomalyService {
                         result.level = 'warning';
                     }
 
-                    result.message += `Expense would exceed total monthly budget. `;
-                    result.message += `Current: ${currentTotal.toLocaleString()}, `;
-                    result.message += `Budget: ${totalBudget.toLocaleString()}.`;
+                    result.message += `Khoản chi này sẽ làm vượt ngân sách tháng tổng. `;
+                    result.message += `Hiện tại: ${currentTotal.toLocaleString()}, `;
+                    result.message += `Ngân sách: ${totalBudget.toLocaleString()}.`;
                 }
             }
 
             // Set default message if no issues
             if (!result.isAnomaly) {
-                result.message = 'Expense is within normal limits.';
+                result.message = 'Khoản chi đang nằm trong ngưỡng bình thường.';
             }
 
             return result;
@@ -142,7 +142,7 @@ class AnomalyService {
                 isAnomaly: false,
                 reasons: [],
                 level: 'normal',
-                message: 'Could not perform anomaly detection.'
+                message: 'Không thể phân tích bất thường cho giao dịch này.'
             };
         }
     }

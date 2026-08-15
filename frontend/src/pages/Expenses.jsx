@@ -3,6 +3,7 @@ import api from '../services/api'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { hienThiDanhMuc } from '../utils/displayText'
 
 const JAR_COLORS = {
     NEC: '#e74c3c',
@@ -16,6 +17,8 @@ const JAR_COLORS = {
 export default function Expenses() {
     const [expenses, setExpenses] = useState([])
     const [loading, setLoading] = useState(true)
+    const [search, setSearch] = useState('')
+    const [filterType, setFilterType] = useState('')
     const [showModal, setShowModal] = useState(false)
     const [editingExpense, setEditingExpense] = useState(null)
     // type: '' = để AI tự quyết định, 'EXPENSE' = chi tiêu, 'INCOME' = thu nhập
@@ -25,9 +28,12 @@ export default function Expenses() {
         fetchExpenses()
     }, [])
 
-    const fetchExpenses = async () => {
+    const fetchExpenses = async (keyword = search, selectedType = filterType) => {
         try {
-            const response = await api.get('/expenses')
+            const params = new URLSearchParams()
+            if (keyword) params.set('q', keyword)
+            if (selectedType) params.set('type', selectedType)
+            const response = await api.get(`/expenses${params.toString() ? `?${params.toString()}` : ''}`)
             setExpenses(response.data.data)
         } catch (error) {
             toast.error('Lấy danh sách giao dịch thất bại')
@@ -110,6 +116,25 @@ export default function Expenses() {
                 </button>
             </div>
 
+            <div className="card mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input
+                        className="input"
+                        placeholder="Tìm theo mô tả hoặc danh mục..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                    <select className="input" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+                        <option value="">Tất cả loại</option>
+                        <option value="EXPENSE">Chi tiêu</option>
+                        <option value="INCOME">Thu nhập</option>
+                    </select>
+                    <button className="btn btn-secondary" onClick={() => fetchExpenses(search, filterType)}>
+                        Tìm giao dịch
+                    </button>
+                </div>
+            </div>
+
             {/* Expenses List */}
             <div className="card">
                 {expenses.length > 0 ? (
@@ -144,7 +169,7 @@ export default function Expenses() {
                                         </td>
                                         <td className="py-4 px-4">
                                             <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm">
-                                                {expense.category}
+                                                {hienThiDanhMuc(expense.category)}
                                             </span>
                                         </td>
                                         <td className="py-4 px-4">

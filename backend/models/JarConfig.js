@@ -78,69 +78,69 @@ jarConfigSchema.statics.getJarByKey = async function (userId, jarKey) {
 };
 
 // Static method to initialize default jars for a user
-jarConfigSchema.statics.initializeDefaultJars = async function (userId) {
+jarConfigSchema.statics.initializeDefaultJars = async function (userId, session = null) {
     const defaultJars = [
         {
             jarKey: 'NEC',
-            jarName: 'Necessities',
-            description: 'Essential expenses: Food, Transportation, Bills, Rent',
+            jarName: 'Nhu cầu thiết yếu',
+            description: 'Chi phí thiết yếu: ăn uống, đi lại, hóa đơn, nhà ở',
             percentage: 55,
             color: '#e74c3c',
             icon: '🏠'
         },
         {
             jarKey: 'FFA',
-            jarName: 'Financial Freedom Account',
-            description: 'Emergency fund and insurance',
+            jarName: 'Tự do tài chính',
+            description: 'Quỹ dự phòng và bảo hiểm',
             percentage: 10,
             color: '#3498db',
             icon: '🛡️'
         },
         {
             jarKey: 'LTSS',
-            jarName: 'Long Term Savings',
-            description: 'Big purchases: House, Car, Investments',
+            jarName: 'Tiết kiệm dài hạn',
+            description: 'Mục tiêu lớn: nhà ở, xe cộ, đầu tư',
             percentage: 10,
             color: '#2ecc71',
             icon: '🏦'
         },
         {
             jarKey: 'EDU',
-            jarName: 'Education',
-            description: 'Learning and personal growth',
+            jarName: 'Giáo dục',
+            description: 'Học tập và phát triển bản thân',
             percentage: 10,
             color: '#9b59b6',
             icon: '📚'
         },
         {
             jarKey: 'PLAY',
-            jarName: 'Play',
-            description: 'Fun and entertainment',
+            jarName: 'Giải trí',
+            description: 'Thư giãn và giải trí',
             percentage: 10,
             color: '#f39c12',
             icon: '🎮'
         },
         {
             jarKey: 'GIVE',
-            jarName: 'Give',
-            description: 'Charity and giving',
+            jarName: 'Cho đi',
+            description: 'Từ thiện và hỗ trợ người khác',
             percentage: 5,
             color: '#e67e22',
             icon: '❤️'
         }
     ];
 
-    const existingJars = await this.find({ userId });
+    const existingJars = await this.find({ userId }).session(session);
     const existingJarKeys = existingJars.map(j => j.jarKey);
 
     const jarsToCreate = defaultJars.filter(j => !existingJarKeys.includes(j.jarKey));
 
     if (jarsToCreate.length > 0) {
         const jarsWithUserId = jarsToCreate.map(jar => ({ ...jar, userId }));
-        await this.insertMany(jarsWithUserId);
+        await this.insertMany(jarsWithUserId, { session });
     }
 
-    return this.getUserJars(userId);
+    return this.find({ userId, isActive: true }).sort({ jarKey: 1 }).session(session);
 };
 
 module.exports = mongoose.model('JarConfig', jarConfigSchema);

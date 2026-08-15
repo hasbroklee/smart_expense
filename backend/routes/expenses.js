@@ -4,11 +4,14 @@
  */
 
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Expense = require('../models/Expense');
 const AIService = require('../services/aiService');
 const AnomalyService = require('../services/anomalyService');
 const Alert = require('../models/Alert');
+const SavingsGoal = require('../models/SavingsGoal');
+const RecurringTransaction = require('../models/RecurringTransaction');
 const { authenticate } = require('../middleware/auth');
 
 /**
@@ -17,6 +20,7 @@ const { authenticate } = require('../middleware/auth');
  * Requires authentication
  */
 router.post('/', authenticate, async (req, res) => {
+    let session;
     try {
         const { description, amount, category, jarKey, type } = req.body;
         const userId = req.userId; // Get from authenticated user
@@ -25,7 +29,7 @@ router.post('/', authenticate, async (req, res) => {
         if (!description) {
             return res.status(400).json({
                 success: false,
-                error: 'Description is required'
+                error: 'Mô tả giao dịch là bắt buộc'
             });
         }
 
@@ -72,7 +76,7 @@ router.post('/', authenticate, async (req, res) => {
                 } else {
                     // Fallback cho trường hợp AI lỗi
                     if (finalType === 'EXPENSE') {
-                        finalCategory = finalCategory || 'Other';
+                        finalCategory = finalCategory || 'Khác';
                         finalJarKey = finalJarKey || 'NEC';
                     }
                 }
@@ -80,7 +84,7 @@ router.post('/', authenticate, async (req, res) => {
                 console.error('AI Classification Error:', error);
                 // Fallback cho lỗi AI chỉ áp dụng với chi tiêu
                 if (finalType === 'EXPENSE') {
-                    finalCategory = finalCategory || 'Other';
+                    finalCategory = finalCategory || 'Khác';
                     finalJarKey = finalJarKey || 'NEC';
                 }
             }
@@ -102,7 +106,7 @@ router.post('/', authenticate, async (req, res) => {
         // Với giao dịch chi tiêu, nếu vẫn chưa có category/jar thì gán mặc định
         if (finalType === 'EXPENSE') {
             if (!finalCategory) {
-                finalCategory = 'Other';
+                finalCategory = 'Khác';
             }
             if (!finalJarKey) {
                 finalJarKey = 'NEC';
@@ -137,53 +141,59 @@ router.post('/', authenticate, async (req, res) => {
             }
         }
 
-        const expense = new Expense(expenseData);
-        await expense.save();
+        session = await mongoose.startSession();
+        let expense;
+        let anomalyError = null;
 
-        // Detect anomalies only for EXPENSE transactions
-        if (finalType === 'EXPENSE') {
-            try {
-                const anomalyResult = await AnomalyService.detectAnomaly(
-                    userId,
-                    finalJarKey,
-                    finalAmount
-                );
+        await session.withTransaction(async () => {
+            expense = new Expense(expenseData);
+            await expense.save({ session });
 
-                // Update expense with anomaly detection results
-                expense.anomaly = {
-                    isAnomaly: anomalyResult.isAnomaly,
-                    reasons: anomalyResult.reasons,
-                    level: anomalyResult.level,
-                    message: anomalyResult.message,
-                    detectedAt: new Date()
-                };
-                await expense.save();
-
-                // Create alert if anomaly detected
-                if (anomalyResult.isAnomaly) {
-                    const alertTitle = anomalyResult.reasons.includes('JAR_LIMIT')
-                        ? `Jar Limit Exceeded: ${finalJarKey}`
-                        : anomalyResult.reasons.includes('BUDGET_LIMIT')
-                            ? 'Monthly Budget Exceeded'
-                            : 'Unusual Expense Detected';
-
-                    await Alert.createAlert({
+            if (finalType === 'EXPENSE') {
+                try {
+                    const anomalyResult = await AnomalyService.detectAnomaly(
                         userId,
-                        expenseId: expense._id,
-                        type: anomalyResult.reasons[0],
+                        finalJarKey,
+                        finalAmount
+                    );
+
+                    expense.anomaly = {
+                        isAnomaly: anomalyResult.isAnomaly,
+                        reasons: anomalyResult.reasons,
                         level: anomalyResult.level,
-                        title: alertTitle,
                         message: anomalyResult.message,
-                        metadata: {
-                            jarKey: finalJarKey,
-                            amount: finalAmount
-                        }
-                    });
+                        detectedAt: new Date()
+                    };
+                    await expense.save({ session });
+
+                    if (anomalyResult.isAnomaly) {
+                        const alertTitle = anomalyResult.reasons.includes('JAR_LIMIT')
+                            ? `Vượt hạn mức hũ: ${finalJarKey}`
+                            : anomalyResult.reasons.includes('BUDGET_LIMIT')
+                                ? 'Vượt ngân sách tháng'
+                                : 'Phát hiện giao dịch bất thường';
+
+                        await Alert.create([{
+                            userId,
+                            expenseId: expense._id,
+                            type: anomalyResult.reasons[0],
+                            level: anomalyResult.level,
+                            title: alertTitle,
+                            message: anomalyResult.message,
+                            metadata: {
+                                jarKey: finalJarKey,
+                                amount: finalAmount
+                            }
+                        }], { session });
+                    }
+                } catch (error) {
+                    anomalyError = error;
                 }
-            } catch (error) {
-                console.error('Anomaly Detection Error:', error);
-                // Don't fail the request if anomaly detection fails
             }
+        });
+
+        if (anomalyError) {
+            console.error('Anomaly Detection Error:', anomalyError);
         }
 
         res.status(201).json({
@@ -194,8 +204,12 @@ router.post('/', authenticate, async (req, res) => {
         console.error('Create Expense Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to create expense'
+            error: error.message || 'Không thể tạo giao dịch'
         });
+    } finally {
+        if (session) {
+            await session.endSession();
+        }
     }
 });
 
@@ -206,7 +220,7 @@ router.post('/', authenticate, async (req, res) => {
  */
 router.get('/', authenticate, async (req, res) => {
     try {
-        const { jarKey, category, startDate, endDate, limit = 50, page = 1 } = req.query;
+        const { jarKey, category, startDate, endDate, limit = 50, page = 1, q, type } = req.query;
         const userId = req.userId; // Get from authenticated user
 
         const query = { userId };
@@ -214,18 +228,29 @@ router.get('/', authenticate, async (req, res) => {
         // Apply filters
         if (jarKey) query.jarKey = jarKey;
         if (category) query.category = category;
+        if (type) query.type = type;
         if (startDate || endDate) {
             query.createdAt = {};
             if (startDate) query.createdAt.$gte = new Date(startDate);
             if (endDate) query.createdAt.$lte = new Date(endDate);
         }
+        if (q) query.$text = { $search: q };
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
-        const expenses = await Expense.find(query)
-            .sort({ createdAt: -1 })
+        let expenseQuery = Expense.find(query)
             .limit(parseInt(limit))
             .skip(skip);
+
+        if (q) {
+            expenseQuery = expenseQuery
+                .select({ score: { $meta: 'textScore' } })
+                .sort({ score: { $meta: 'textScore' }, createdAt: -1 });
+        } else {
+            expenseQuery = expenseQuery.sort({ createdAt: -1 });
+        }
+
+        const expenses = await expenseQuery;
 
         const total = await Expense.countDocuments(query);
 
@@ -243,7 +268,7 @@ router.get('/', authenticate, async (req, res) => {
         console.error('Get Expenses Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to fetch expenses'
+            error: error.message || 'Không thể tải danh sách giao dịch'
         });
     }
 });
@@ -253,7 +278,7 @@ router.get('/', authenticate, async (req, res) => {
  * Get a single expense by ID
  * Requires authentication
  */
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id([0-9a-fA-F]{24})', authenticate, async (req, res) => {
     try {
         const expense = await Expense.findOne({
             _id: req.params.id,
@@ -263,7 +288,7 @@ router.get('/:id', authenticate, async (req, res) => {
         if (!expense) {
             return res.status(404).json({
                 success: false,
-                error: 'Expense not found'
+                error: 'Không tìm thấy giao dịch'
             });
         }
 
@@ -275,7 +300,7 @@ router.get('/:id', authenticate, async (req, res) => {
         console.error('Get Expense Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to fetch expense'
+            error: error.message || 'Không thể tải giao dịch'
         });
     }
 });
@@ -285,7 +310,7 @@ router.get('/:id', authenticate, async (req, res) => {
  * Update an expense
  * Requires authentication
  */
-router.put('/:id', authenticate, async (req, res) => {
+router.put('/:id([0-9a-fA-F]{24})', authenticate, async (req, res) => {
     try {
         const { description, amount, category, jarKey } = req.body;
 
@@ -297,7 +322,7 @@ router.put('/:id', authenticate, async (req, res) => {
         if (!expense) {
             return res.status(404).json({
                 success: false,
-                error: 'Expense not found'
+                error: 'Không tìm thấy giao dịch'
             });
         }
 
@@ -318,7 +343,7 @@ router.put('/:id', authenticate, async (req, res) => {
         console.error('Update Expense Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to update expense'
+            error: error.message || 'Không thể cập nhật giao dịch'
         });
     }
 });
@@ -328,7 +353,7 @@ router.put('/:id', authenticate, async (req, res) => {
  * Delete an expense
  * Requires authentication
  */
-router.delete('/:id', authenticate, async (req, res) => {
+router.delete('/:id([0-9a-fA-F]{24})', authenticate, async (req, res) => {
     try {
         const expense = await Expense.findOneAndDelete({
             _id: req.params.id,
@@ -338,19 +363,19 @@ router.delete('/:id', authenticate, async (req, res) => {
         if (!expense) {
             return res.status(404).json({
                 success: false,
-                error: 'Expense not found'
+                error: 'Không tìm thấy giao dịch'
             });
         }
 
         res.json({
             success: true,
-            message: 'Expense deleted successfully'
+            message: 'Đã xoá giao dịch thành công'
         });
     } catch (error) {
         console.error('Delete Expense Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to delete expense'
+            error: error.message || 'Không thể xoá giao dịch'
         });
     }
 });
@@ -493,7 +518,157 @@ router.get('/stats/summary', authenticate, async (req, res) => {
         console.error('Get Stats Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to fetch statistics'
+            error: error.message || 'Không thể tải thống kê'
+        });
+    }
+});
+
+router.get('/stats/insights', authenticate, async (req, res) => {
+    try {
+        const now = new Date();
+        const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+        const [expenseInsights, goals, recurringDue] = await Promise.all([
+            Expense.aggregate([
+                {
+                    $match: {
+                        userId: req.userId,
+                        createdAt: { $gte: startDate, $lte: endDate }
+                    }
+                },
+                {
+                    $facet: {
+                        totals: [
+                            {
+                                $group: {
+                                    _id: '$type',
+                                    total: { $sum: '$amount' },
+                                    count: { $sum: 1 }
+                                }
+                            }
+                        ],
+                        jarBreakdown: [
+                            { $match: { type: 'EXPENSE' } },
+                            {
+                                $group: {
+                                    _id: '$jarKey',
+                                    total: { $sum: '$amount' },
+                                    count: { $sum: 1 },
+                                    avgAmount: { $avg: '$amount' }
+                                }
+                            },
+                            {
+                                $lookup: {
+                                    from: 'jarconfigs',
+                                    let: { jarKey: '$_id' },
+                                    pipeline: [
+                                        {
+                                            $match: {
+                                                $expr: {
+                                                    $and: [
+                                                        { $eq: ['$userId', req.userId] },
+                                                        { $eq: ['$jarKey', '$$jarKey'] }
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        { $project: { _id: 0, jarName: 1, monthlyLimit: 1, color: 1 } }
+                                    ],
+                                    as: 'jarConfig'
+                                }
+                            },
+                            { $addFields: { jarConfig: { $arrayElemAt: ['$jarConfig', 0] } } },
+                            { $sort: { total: -1 } }
+                        ],
+                        topCategories: [
+                            { $match: { type: 'EXPENSE' } },
+                            {
+                                $group: {
+                                    _id: '$category',
+                                    total: { $sum: '$amount' },
+                                    count: { $sum: 1 }
+                                }
+                            },
+                            { $sort: { total: -1 } },
+                            { $limit: 5 }
+                        ],
+                        anomalySummary: [
+                            { $match: { 'anomaly.isAnomaly': true } },
+                            {
+                                $group: {
+                                    _id: '$anomaly.level',
+                                    count: { $sum: 1 },
+                                    totalAmount: { $sum: '$amount' }
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]),
+            SavingsGoal.aggregate([
+                {
+                    $match: {
+                        userId: req.userId,
+                        status: 'ACTIVE'
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        name: 1,
+                        jarKey: 1,
+                        targetAmount: 1,
+                        currentAmount: 1,
+                        progress: {
+                            $cond: [
+                                { $gt: ['$targetAmount', 0] },
+                                { $multiply: [{ $divide: ['$currentAmount', '$targetAmount'] }, 100] },
+                                0
+                            ]
+                        }
+                    }
+                },
+                { $sort: { createdAt: -1 } }
+            ]),
+            RecurringTransaction.aggregate([
+                {
+                    $match: {
+                        userId: req.userId,
+                        isActive: true,
+                        nextRunAt: { $lte: now }
+                    }
+                },
+                {
+                    $group: {
+                        _id: '$type',
+                        count: { $sum: 1 },
+                        totalAmount: { $sum: '$amount' }
+                    }
+                }
+            ])
+        ]);
+
+        const insights = expenseInsights[0] || {
+            totals: [],
+            jarBreakdown: [],
+            topCategories: [],
+            anomalySummary: []
+        };
+
+        res.json({
+            success: true,
+            data: {
+                ...insights,
+                goals,
+                recurringDue
+            }
+        });
+    } catch (error) {
+        console.error('Get Insights Error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Không thể tải dữ liệu tổng hợp'
         });
     }
 });

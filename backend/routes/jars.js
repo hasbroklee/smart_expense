@@ -52,7 +52,7 @@ router.get('/', authenticate, async (req, res) => {
         console.error('Get Jars Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to fetch jars'
+            error: error.message || 'Không thể tải danh sách hũ'
         });
     }
 });
@@ -71,13 +71,13 @@ router.post('/initialize', authenticate, async (req, res) => {
         res.json({
             success: true,
             data: jars,
-            message: 'Default jars initialized successfully'
+            message: 'Đã khởi tạo 6 hũ mặc định'
         });
     } catch (error) {
         console.error('Initialize Jars Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to initialize jars'
+            error: error.message || 'Không thể khởi tạo 6 hũ'
         });
     }
 });
@@ -98,7 +98,7 @@ router.put('/:jarKey', authenticate, async (req, res) => {
         if (!jar) {
             return res.status(404).json({
                 success: false,
-                error: 'Jar not found'
+                error: 'Không tìm thấy hũ'
             });
         }
 
@@ -120,7 +120,7 @@ router.put('/:jarKey', authenticate, async (req, res) => {
         console.error('Update Jar Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to update jar'
+            error: error.message || 'Không thể cập nhật hũ'
         });
     }
 });
@@ -145,7 +145,7 @@ router.get('/:jarKey/stats', authenticate, async (req, res) => {
         if (!jar) {
             return res.status(404).json({
                 success: false,
-                error: 'Jar not found'
+                error: 'Không tìm thấy hũ'
             });
         }
 
@@ -175,7 +175,7 @@ router.get('/:jarKey/stats', authenticate, async (req, res) => {
         console.error('Get Jar Stats Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to fetch jar statistics'
+            error: error.message || 'Không thể tải thống kê hũ'
         });
     }
 });

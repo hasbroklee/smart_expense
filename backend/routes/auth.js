@@ -6,7 +6,11 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
+const JarConfig = require('../models/JarConfig');
+const SavingsGoal = require('../models/SavingsGoal');
+const RecurringTransaction = require('../models/RecurringTransaction');
 const { authenticate, JWT_SECRET } = require('../middleware/auth');
 
 /**
@@ -14,6 +18,7 @@ const { authenticate, JWT_SECRET } = require('../middleware/auth');
  * Register a new user
  */
 router.post('/register', async (req, res) => {
+    let session;
     try {
         const { username, email, password, fullName } = req.body;
 
@@ -21,7 +26,7 @@ router.post('/register', async (req, res) => {
         if (!username || !email || !password) {
             return res.status(400).json({
                 success: false,
-                error: 'Username, email, and password are required'
+                error: 'Tên đăng nhập, email và mật khẩu là bắt buộc'
             });
         }
 
@@ -29,7 +34,7 @@ router.post('/register', async (req, res) => {
         if (password.length < 6) {
             return res.status(400).json({
                 success: false,
-                error: 'Password must be at least 6 characters long'
+                error: 'Mật khẩu phải có ít nhất 6 ký tự'
             });
         }
 
@@ -38,7 +43,7 @@ router.post('/register', async (req, res) => {
         if (existingUser) {
             return res.status(400).json({
                 success: false,
-                error: 'User with this email or username already exists'
+                error: 'Email hoặc tên đăng nhập này đã tồn tại'
             });
         }
 
@@ -47,19 +52,26 @@ router.post('/register', async (req, res) => {
         if (existingUsername) {
             return res.status(400).json({
                 success: false,
-                error: 'Username already taken'
+                error: 'Tên đăng nhập đã được sử dụng'
             });
         }
 
-        // Create user
-        const user = new User({
-            username,
-            email,
-            password,
-            fullName: fullName || ''
-        });
+        session = await mongoose.startSession();
 
-        await user.save();
+        let user;
+        await session.withTransaction(async () => {
+            user = new User({
+                username,
+                email,
+                password,
+                fullName: fullName || ''
+            });
+
+            await user.save({ session });
+            await JarConfig.initializeDefaultJars(user._id.toString(), session);
+            await SavingsGoal.initializeDefaultGoals(user._id.toString(), session);
+            await RecurringTransaction.initializeDefaultRecurring(user._id.toString(), session);
+        });
 
         // Generate JWT token
         const token = jwt.sign(
@@ -78,7 +90,7 @@ router.post('/register', async (req, res) => {
                 user: user.toJSON(),
                 token
             },
-            message: 'User registered successfully'
+            message: 'Đăng ký tài khoản thành công'
         });
     } catch (error) {
         console.error('Register Error:', error);
@@ -88,14 +100,18 @@ router.post('/register', async (req, res) => {
             const field = Object.keys(error.keyPattern)[0];
             return res.status(400).json({
                 success: false,
-                error: `${field} already exists`
+                error: `${field} đã tồn tại`
             });
         }
 
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to register user'
+            error: error.message || 'Không thể đăng ký tài khoản'
         });
+    } finally {
+        if (session) {
+            await session.endSession();
+        }
     }
 });
 
@@ -111,7 +127,7 @@ router.post('/login', async (req, res) => {
         if (!identifier || !password) {
             return res.status(400).json({
                 success: false,
-                error: 'Email/username and password are required'
+                error: 'Email hoặc tên đăng nhập và mật khẩu là bắt buộc'
             });
         }
 
@@ -121,7 +137,7 @@ router.post('/login', async (req, res) => {
         if (!user) {
             return res.status(401).json({
                 success: false,
-                error: 'Invalid email/username or password'
+                error: 'Email, tên đăng nhập hoặc mật khẩu không đúng'
             });
         }
 
@@ -129,7 +145,7 @@ router.post('/login', async (req, res) => {
         if (!user.isActive) {
             return res.status(401).json({
                 success: false,
-                error: 'Account is inactive. Please contact support.'
+                error: 'Tài khoản đang bị vô hiệu hóa'
             });
         }
 
@@ -139,7 +155,7 @@ router.post('/login', async (req, res) => {
         if (!isPasswordValid) {
             return res.status(401).json({
                 success: false,
-                error: 'Invalid email/username or password'
+                error: 'Email, tên đăng nhập hoặc mật khẩu không đúng'
             });
         }
 
@@ -160,13 +176,13 @@ router.post('/login', async (req, res) => {
                 user: user.toJSON(),
                 token
             },
-            message: 'Login successful'
+            message: 'Đăng nhập thành công'
         });
     } catch (error) {
         console.error('Login Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to login'
+            error: error.message || 'Không thể đăng nhập'
         });
     }
 });
@@ -185,7 +201,7 @@ router.get('/me', authenticate, async (req, res) => {
         console.error('Get Profile Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to get profile'
+            error: error.message || 'Không thể tải thông tin tài khoản'
         });
     }
 });
@@ -215,13 +231,13 @@ router.put('/me', authenticate, async (req, res) => {
         res.json({
             success: true,
             data: user.toJSON(),
-            message: 'Profile updated successfully'
+            message: 'Cập nhật hồ sơ thành công'
         });
     } catch (error) {
         console.error('Update Profile Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to update profile'
+            error: error.message || 'Không thể cập nhật hồ sơ'
         });
     }
 });
@@ -237,14 +253,14 @@ router.put('/change-password', authenticate, async (req, res) => {
         if (!currentPassword || !newPassword) {
             return res.status(400).json({
                 success: false,
-                error: 'Current password and new password are required'
+                error: 'Mật khẩu hiện tại và mật khẩu mới là bắt buộc'
             });
         }
 
         if (newPassword.length < 6) {
             return res.status(400).json({
                 success: false,
-                error: 'New password must be at least 6 characters long'
+                error: 'Mật khẩu mới phải có ít nhất 6 ký tự'
             });
         }
 
@@ -256,7 +272,7 @@ router.put('/change-password', authenticate, async (req, res) => {
         if (!isPasswordValid) {
             return res.status(401).json({
                 success: false,
-                error: 'Current password is incorrect'
+                error: 'Mật khẩu hiện tại không đúng'
             });
         }
 
@@ -266,13 +282,13 @@ router.put('/change-password', authenticate, async (req, res) => {
 
         res.json({
             success: true,
-            message: 'Password changed successfully'
+            message: 'Đổi mật khẩu thành công'
         });
     } catch (error) {
         console.error('Change Password Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to change password'
+            error: error.message || 'Không thể đổi mật khẩu'
         });
     }
 });
@@ -284,7 +300,7 @@ router.put('/change-password', authenticate, async (req, res) => {
 router.post('/verify-token', authenticate, (req, res) => {
     res.json({
         success: true,
-        message: 'Token is valid',
+        message: 'Phiên đăng nhập hợp lệ',
         data: {
             userId: req.userId,
             email: req.user.email

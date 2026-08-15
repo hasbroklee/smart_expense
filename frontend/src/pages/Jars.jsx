@@ -92,7 +92,7 @@ export default function Jars() {
             setEditingJar(null)
             fetchJars()
         } catch (error) {
-            toast.error('Failed to update jar')
+            toast.error('Không thể cập nhật hạn mức hũ')
         }
     }
 
@@ -112,7 +112,7 @@ export default function Jars() {
 
     return (
         <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">Mô hình 6 Hũ (6 Jars)</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-8">Mô hình 6 hũ</h1>
 
             {/* Biểu đồ tổng quan chi tiêu theo hũ */}
             {jars.length > 0 && (

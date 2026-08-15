@@ -34,7 +34,7 @@ export default function Alerts() {
             toast.success('Đã đánh dấu cảnh báo là đã đọc')
             fetchAlerts()
         } catch (error) {
-            toast.error('Failed to mark alert as read')
+            toast.error('Không thể đánh dấu cảnh báo là đã đọc')
         }
     }
 
@@ -44,7 +44,7 @@ export default function Alerts() {
             toast.success('Đã đánh dấu tất cả cảnh báo là đã đọc')
             fetchAlerts()
         } catch (error) {
-            toast.error('Failed to mark all alerts as read')
+            toast.error('Không thể đánh dấu tất cả cảnh báo là đã đọc')
         }
     }
 
@@ -54,7 +54,7 @@ export default function Alerts() {
             toast.success('Đã xoá cảnh báo')
             fetchAlerts()
         } catch (error) {
-            toast.error('Failed to delete alert')
+            toast.error('Không thể xoá cảnh báo')
         }
     }
 
@@ -152,7 +152,7 @@ export default function Alerts() {
                                         <button
                                             onClick={() => markAsRead(alert._id)}
                                             className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded"
-                                            title="Mark as read"
+                                            title="Đánh dấu đã đọc"
                                         >
                                             <CheckIcon className="w-5 h-5" />
                                         </button>
@@ -160,7 +160,7 @@ export default function Alerts() {
                                     <button
                                         onClick={() => deleteAlert(alert._id)}
                                         className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
-                                        title="Delete"
+                                        title="Xoá"
                                     >
                                         <XMarkIcon className="w-5 h-5" />
                                     </button>

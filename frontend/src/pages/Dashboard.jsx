@@ -21,6 +21,7 @@ import {
     YAxis,
     CartesianGrid
 } from 'recharts'
+import { hienThiDanhMuc, nhanMucDoCanhBao } from '../utils/displayText'
 
 const JAR_COLORS = {
     NEC: '#e74c3c',
@@ -33,6 +34,7 @@ const JAR_COLORS = {
 
 export default function Dashboard() {
     const [stats, setStats] = useState(null)
+    const [insights, setInsights] = useState(null)
     const [recentExpenses, setRecentExpenses] = useState([])
     const [unreadAlerts, setUnreadAlerts] = useState(0)
     const [loading, setLoading] = useState(true)
@@ -44,13 +46,15 @@ export default function Dashboard() {
     const fetchData = async () => {
         try {
             const now = new Date()
-            const [statsRes, expensesRes, alertsRes] = await Promise.all([
+            const [statsRes, insightsRes, expensesRes, alertsRes] = await Promise.all([
                 api.get(`/expenses/stats/summary?month=${now.getMonth() + 1}&year=${now.getFullYear()}`),
+                api.get('/expenses/stats/insights'),
                 api.get('/expenses?limit=5'),
                 api.get('/alerts/unread')
             ])
 
             setStats(statsRes.data.data)
+            setInsights(insightsRes.data.data)
             setRecentExpenses(expensesRes.data.data)
             setUnreadAlerts(alertsRes.data.count || 0)
         } catch (error) {
@@ -79,6 +83,11 @@ export default function Dashboard() {
         ThuNhap: d.income || 0,
         ChiTieu: d.expense || 0
     })) || []
+
+    const topCategories = insights?.topCategories || []
+    const anomalySummary = insights?.anomalySummary || []
+    const goalItems = insights?.goals || []
+    const recurringDue = insights?.recurringDue || []
 
     return (
         <div>
@@ -148,7 +157,7 @@ export default function Dashboard() {
                 <div className="space-y-6">
                     {/* Biểu đồ phân bổ chi tiêu theo hũ (JAR) */}
                     <div className="card">
-                        <h2 className="text-xl font-bold text-gray-900 mb-4">Phân bổ chi tiêu theo hũ (JAR)</h2>
+                        <h2 className="text-xl font-bold text-gray-900 mb-4">Phân bổ chi tiêu theo hũ</h2>
                         {chartData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={300}>
                                 <PieChart>
@@ -218,7 +227,7 @@ export default function Dashboard() {
                                     <div className="flex-1">
                                         <p className="font-medium text-gray-900">{expense.description}</p>
                                         <p className="text-sm text-gray-500">
-                                            {format(new Date(expense.createdAt), 'dd/MM')} • {expense.category || 'Không có danh mục'}
+                                            {format(new Date(expense.createdAt), 'dd/MM')} • {hienThiDanhMuc(expense.category)}
                                         </p>
                                     </div>
                                     <div className="text-right">
@@ -248,6 +257,82 @@ export default function Dashboard() {
                             </Link>
                         </div>
                     )}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <div className="card">
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">Top danh mục tháng này</h2>
+                    <div className="space-y-3">
+                        {topCategories.length > 0 ? topCategories.map(item => (
+                            <div key={item._id || item.total} className="flex items-center justify-between rounded-lg bg-gray-50 p-4">
+                                <div>
+                                    <p className="font-medium text-gray-900">{hienThiDanhMuc(item._id)}</p>
+                                    <p className="text-sm text-gray-500">{item.count} giao dịch</p>
+                                </div>
+                                <p className="font-semibold text-gray-900">{item.total.toLocaleString()} VND</p>
+                            </div>
+                        )) : <p className="text-gray-500">Chưa có dữ liệu danh mục.</p>}
+                    </div>
+                </div>
+
+                <div className="card">
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">Tổng hợp bất thường</h2>
+                    <div className="space-y-3">
+                        {anomalySummary.length > 0 ? anomalySummary.map(item => (
+                            <div key={item._id} className="flex items-center justify-between rounded-lg bg-gray-50 p-4">
+                                <div>
+                                    <p className="font-medium text-gray-900">{nhanMucDoCanhBao[item._id] || item._id}</p>
+                                    <p className="text-sm text-gray-500">{item.count} giao dịch bị gắn cờ</p>
+                                </div>
+                                <p className="font-semibold text-gray-900">{item.totalAmount.toLocaleString()} VND</p>
+                            </div>
+                        )) : <p className="text-gray-500">Chưa có anomaly nào trong tháng này.</p>}
+                        <div className="rounded-lg bg-primary-50 p-4 text-sm text-primary-800">
+                            {unreadAlerts > 0 ? `Bạn đang có ${unreadAlerts} cảnh báo chưa đọc.` : 'Hiện không có cảnh báo chưa đọc.'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <div className="card">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold text-gray-900">Mục tiêu tiết kiệm</h2>
+                        <Link to="/goals" className="text-sm text-primary-600 hover:text-primary-700">Quản lý</Link>
+                    </div>
+                    <div className="space-y-3">
+                        {goalItems.length > 0 ? goalItems.map(goal => (
+                            <div key={goal._id} className="rounded-lg bg-gray-50 p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="font-medium text-gray-900">{goal.name}</p>
+                                    <span className="text-sm text-primary-700">{goal.progress.toFixed(1)}%</span>
+                                </div>
+                                <div className="w-full h-2 rounded-full bg-gray-200 mb-2">
+                                    <div className="h-2 rounded-full bg-primary-600" style={{ width: `${Math.min(goal.progress, 100)}%` }}></div>
+                                </div>
+                                <p className="text-sm text-gray-500">{goal.currentAmount.toLocaleString()} / {goal.targetAmount.toLocaleString()} VND</p>
+                            </div>
+                        )) : <p className="text-gray-500">Chưa có mục tiêu tiết kiệm nào.</p>}
+                    </div>
+                </div>
+
+                <div className="card">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold text-gray-900">Giao dịch định kỳ đến hạn</h2>
+                        <Link to="/recurring" className="text-sm text-primary-600 hover:text-primary-700">Xem chi tiết</Link>
+                    </div>
+                    <div className="space-y-3">
+                        {recurringDue.length > 0 ? recurringDue.map(item => (
+                            <div key={item._id} className="rounded-lg bg-gray-50 p-4 flex items-center justify-between">
+                                <div>
+                                    <p className="font-medium text-gray-900">{item._id === 'EXPENSE' ? 'Chi tiêu định kỳ' : item._id === 'INCOME' ? 'Thu nhập định kỳ' : item._id}</p>
+                                    <p className="text-sm text-gray-500">{item.count} mục đến hạn</p>
+                                </div>
+                                <p className="font-semibold text-gray-900">{item.totalAmount.toLocaleString()} VND</p>
+                            </div>
+                        )) : <p className="text-gray-500">Hiện chưa có giao dịch định kỳ nào đến hạn.</p>}
+                    </div>
                 </div>
             </div>
         </div>

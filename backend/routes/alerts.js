@@ -43,7 +43,7 @@ router.get('/', authenticate, async (req, res) => {
         console.error('Get Alerts Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to fetch alerts'
+            error: error.message || 'Không thể tải danh sách cảnh báo'
         });
     }
 });
@@ -69,7 +69,7 @@ router.get('/unread', authenticate, async (req, res) => {
         console.error('Get Unread Alerts Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to fetch unread alerts'
+            error: error.message || 'Không thể tải cảnh báo chưa đọc'
         });
     }
 });
@@ -88,7 +88,7 @@ router.put('/:id/read', authenticate, async (req, res) => {
         if (!alert) {
             return res.status(404).json({
                 success: false,
-                error: 'Alert not found'
+                error: 'Không tìm thấy cảnh báo'
             });
         }
 
@@ -100,7 +100,7 @@ router.put('/:id/read', authenticate, async (req, res) => {
         console.error('Mark Alert Read Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to mark alert as read'
+            error: error.message || 'Không thể đánh dấu cảnh báo là đã đọc'
         });
     }
 });
@@ -118,13 +118,13 @@ router.put('/read-all', authenticate, async (req, res) => {
 
         res.json({
             success: true,
-            message: `Marked ${result.modifiedCount} alerts as read`
+            message: `Đã đánh dấu ${result.modifiedCount} cảnh báo là đã đọc`
         });
     } catch (error) {
         console.error('Mark All Alerts Read Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to mark all alerts as read'
+            error: error.message || 'Không thể đánh dấu tất cả cảnh báo là đã đọc'
         });
     }
 });
@@ -140,19 +140,19 @@ router.delete('/:id', async (req, res) => {
         if (!alert) {
             return res.status(404).json({
                 success: false,
-                error: 'Alert not found'
+                error: 'Không tìm thấy cảnh báo'
             });
         }
 
         res.json({
             success: true,
-            message: 'Alert deleted successfully'
+            message: 'Đã xoá cảnh báo thành công'
         });
     } catch (error) {
         console.error('Delete Alert Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to delete alert'
+            error: error.message || 'Không thể xoá cảnh báo'
         });
     }
 });

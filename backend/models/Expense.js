@@ -115,6 +115,10 @@ const expenseSchema = new mongoose.Schema({
 expenseSchema.index({ userId: 1, createdAt: -1 });
 expenseSchema.index({ userId: 1, jarKey: 1, createdAt: -1 });
 expenseSchema.index({ userId: 1, category: 1 });
+expenseSchema.index(
+    { description: 'text', category: 'text' },
+    { name: 'expense_text_search', weights: { description: 5, category: 2 } }
+);
 
 // Virtual for formatted amount
 expenseSchema.virtual('formattedAmount').get(function () {

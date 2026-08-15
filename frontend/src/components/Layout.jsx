@@ -5,6 +5,8 @@ import {
     CurrencyDollarIcon,
     BanknotesIcon,
     BellIcon,
+    TrophyIcon,
+    ArrowPathRoundedSquareIcon,
     ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline'
 
@@ -17,6 +19,8 @@ export default function Layout() {
         { name: 'Giao dịch', href: '/expenses', icon: CurrencyDollarIcon },
         { name: '6 Hũ', href: '/jars', icon: BanknotesIcon },
         { name: 'Cảnh báo', href: '/alerts', icon: BellIcon },
+        { name: 'Mục tiêu', href: '/goals', icon: TrophyIcon },
+        { name: 'Định kỳ', href: '/recurring', icon: ArrowPathRoundedSquareIcon },
     ]
 
     const isActive = (path) => {

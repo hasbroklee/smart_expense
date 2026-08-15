@@ -26,7 +26,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/expenses', require('./routes/expenses'));
 app.use('/api/alerts', require('./routes/alerts'));
+app.use('/api/categories', require('./routes/categories'));
 app.use('/api/jars', require('./routes/jars'));
+app.use('/api/goals', require('./routes/goals'));
+app.use('/api/recurring', require('./routes/recurring'));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -38,14 +41,17 @@ app.get('/health', (req, res) => {
 
 // Root endpoint
 app.get('/', (req, res) => {
-    res.json({
-        message: 'Expense Management API',
+res.json({
+        message: 'API quản lý chi tiêu thông minh',
         version: '1.0.0',
         endpoints: {
             auth: '/api/auth',
             expenses: '/api/expenses',
             alerts: '/api/alerts',
+            categories: '/api/categories',
             jars: '/api/jars',
+            goals: '/api/goals',
+            recurring: '/api/recurring',
             health: '/health'
         }
     });
@@ -56,7 +62,7 @@ app.use((err, req, res, next) => {
     console.error('Error:', err);
     res.status(err.status || 500).json({
         success: false,
-        error: err.message || 'Internal server error'
+        error: err.message || 'Lỗi máy chủ nội bộ'
     });
 });
 
@@ -64,7 +70,7 @@ app.use((err, req, res, next) => {
 app.use((req, res) => {
     res.status(404).json({
         success: false,
-        error: 'Route not found'
+        error: 'Không tìm thấy đường dẫn'
     });
 });
 

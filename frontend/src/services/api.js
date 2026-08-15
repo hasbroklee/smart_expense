@@ -20,7 +20,7 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             localStorage.removeItem('token')
             delete api.defaults.headers.common['Authorization']
-            window.location.href = '/login'
+            window.location.hash = '#/login'
         }
         return Promise.reject(error)
     }

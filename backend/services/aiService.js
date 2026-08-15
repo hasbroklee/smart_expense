@@ -42,7 +42,7 @@ class AIService {
             } else {
                 return {
                     success: false,
-                    error: 'Classification failed'
+                    error: 'Phân loại giao dịch thất bại'
                 };
             }
         } catch (error) {
@@ -52,7 +52,7 @@ class AIService {
             if (error.code === 'ECONNREFUSED') {
                 return {
                     success: false,
-                    error: 'AI service is not available. Please ensure the Python API is running.'
+                    error: 'Dịch vụ AI hiện chưa sẵn sàng. Hãy kiểm tra API Python đã chạy hay chưa.'
                 };
             }
 
@@ -60,13 +60,13 @@ class AIService {
                 // API returned an error response
                 return {
                     success: false,
-                    error: error.response.data?.detail || error.response.data?.error || 'AI service error'
+                    error: error.response.data?.detail || error.response.data?.error || 'Dịch vụ AI đang gặp lỗi'
                 };
             }
 
             return {
                 success: false,
-                error: error.message || 'Unknown error occurred'
+                error: error.message || 'Đã xảy ra lỗi không xác định'
             };
         }
     }
@@ -93,7 +93,7 @@ class AIService {
             console.error('AI Service Batch Error:', error.message);
             return {
                 success: false,
-                error: error.message || 'Batch classification failed'
+                error: error.message || 'Phân loại hàng loạt thất bại'
             };
         }
     }

@@ -19,7 +19,7 @@ const authenticate = async (req, res, next) => {
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return res.status(401).json({
                 success: false,
-                error: 'No token provided. Authorization header must be: Bearer <token>'
+                error: 'Thiếu token đăng nhập'
             });
         }
 
@@ -35,7 +35,7 @@ const authenticate = async (req, res, next) => {
         if (!user || !user.isActive) {
             return res.status(401).json({
                 success: false,
-                error: 'User not found or inactive'
+                error: 'Không tìm thấy người dùng hoặc tài khoản đã bị vô hiệu hóa'
             });
         }
 
@@ -47,18 +47,18 @@ const authenticate = async (req, res, next) => {
         if (error.name === 'JsonWebTokenError') {
             return res.status(401).json({
                 success: false,
-                error: 'Invalid token'
+                error: 'Token không hợp lệ'
             });
         }
         if (error.name === 'TokenExpiredError') {
             return res.status(401).json({
                 success: false,
-                error: 'Token expired'
+                error: 'Token đã hết hạn'
             });
         }
         return res.status(500).json({
             success: false,
-            error: 'Authentication error'
+            error: 'Lỗi xác thực người dùng'
         });
     }
 };

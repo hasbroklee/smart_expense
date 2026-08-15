@@ -6,6 +6,8 @@ import Dashboard from './pages/Dashboard'
 import Expenses from './pages/Expenses'
 import Jars from './pages/Jars'
 import Alerts from './pages/Alerts'
+import Goals from './pages/Goals'
+import Recurring from './pages/Recurring'
 import Layout from './components/Layout'
 
 function PrivateRoute({ children }) {
@@ -39,6 +41,8 @@ function App() {
                 <Route path="expenses" element={<Expenses />} />
                 <Route path="jars" element={<Jars />} />
                 <Route path="alerts" element={<Alerts />} />
+                <Route path="goals" element={<Goals />} />
+                <Route path="recurring" element={<Recurring />} />
             </Route>
         </Routes>
     )
